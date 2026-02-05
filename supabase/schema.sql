@@ -277,42 +277,16 @@ ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE gyms;
 
 -- ============================================
--- SAMPLE DATA (Optional - for testing)
+-- SAMPLE DATA (Removed - create data through the app)
 -- ============================================
 
--- Insert sample owner profile
-INSERT INTO profiles (id, role, full_name, email, phone)
-VALUES 
-    ('00000000-0000-0000-0000-000000000001', 'owner', 'Rahul Sharma', 'rahul@ironparadise.com', '+919876543210'),
-    ('00000000-0000-0000-0000-000000000002', 'athlete', 'Priya Patel', 'priya@example.com', '+919876543211')
-ON CONFLICT (id) DO NOTHING;
-
--- Insert sample gym
-INSERT INTO gyms (id, owner_id, name, description, address, location_lat, location_lng, upi_id, current_crowd_count, max_capacity, photos, amenities, opening_hours)
-VALUES (
-    '00000000-0000-0000-0000-000000000010',
-    '00000000-0000-0000-0000-000000000001',
-    'Iron Paradise Elite',
-    'Mumbai''s premier luxury fitness destination featuring world-class equipment, Olympic lifting platforms, and personalized training programs.',
-    'Bandra West, Mumbai',
-    19.0596,
-    72.8295,
-    'ironparadise@upi',
-    45,
-    100,
-    ARRAY['https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&q=80'],
-    ARRAY['Olympic Lifting', 'Sauna', 'Personal Training', 'Cafe', 'Parking', 'Cardio Zone', 'Free Weights'],
-    '{"mon": "5:00 AM - 11:00 PM", "tue": "5:00 AM - 11:00 PM", "wed": "5:00 AM - 11:00 PM", "thu": "5:00 AM - 11:00 PM", "fri": "5:00 AM - 11:00 PM", "sat": "6:00 AM - 10:00 PM", "sun": "6:00 AM - 8:00 PM"}'
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Insert sample plans
-INSERT INTO plans (id, gym_id, name, description, price, duration_days, features, is_popular)
-VALUES 
-    ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000010', 'Day Pass', 'Full access for 24 hours', 499, 1, ARRAY['Full Gym Access', 'Locker Room', 'Towel Service'], false),
-    ('00000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000010', 'Weekly Pass', '7 days of unlimited access', 1999, 7, ARRAY['Full Gym Access', 'Locker Room', 'Towel Service', '1 PT Session'], true),
-    ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000010', 'Monthly Pass', '30 days of premium access', 4999, 30, ARRAY['Full Gym Access', 'Locker Room', 'Towel Service', '4 PT Sessions', 'Sauna Access'], false)
-ON CONFLICT (id) DO NOTHING;
+-- Note: Sample profiles cannot be inserted directly because they 
+-- require corresponding entries in auth.users table.
+-- 
+-- To add test data:
+-- 1. Sign up through the app as an owner
+-- 2. Create a gym through /dashboard/setup
+-- 3. Sign up as an athlete to test bookings
 
 -- ============================================
 -- STORAGE BUCKETS
