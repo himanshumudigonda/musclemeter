@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/components/providers";
 
 // Magnetic Button Component
 function MagneticButton({
@@ -400,6 +401,7 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
 // Main Landing Page Component
 export default function LandingPage() {
   const router = useRouter();
+  const { user, profile, isLoading: authLoading, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredSide, setHoveredSide] = useState<"left" | "right" | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -469,23 +471,58 @@ export default function LandingPage() {
 
               {/* Auth Buttons */}
               <div className="flex items-center gap-4">
-                <Link href="/auth/signin">
-                  <motion.span 
-                    className="text-sm text-pearl-muted hover:text-pearl transition-colors cursor-pointer"
-                    whileHover={{ x: 2 }}
-                  >
-                    Sign In
-                  </motion.span>
-                </Link>
-                <Link href="/auth/signup">
-                  <motion.button
-                    className="px-5 py-2 text-sm font-medium bg-gold text-void rounded-lg hover:bg-gold-400 transition-colors"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Get Started
-                  </motion.button>
-                </Link>
+                {user ? (
+                  <>
+                    <Link href={profile?.role === "owner" ? "/dashboard" : "/explore"}>
+                      <motion.span 
+                        className="text-sm text-pearl-muted hover:text-pearl transition-colors cursor-pointer"
+                        whileHover={{ x: 2 }}
+                      >
+                        {profile?.role === "owner" ? "Dashboard" : "Explore"}
+                      </motion.span>
+                    </Link>
+                    <div className="flex items-center gap-3">
+                      {profile?.avatar_url ? (
+                        <img 
+                          src={profile.avatar_url} 
+                          alt={profile.full_name || "User"} 
+                          className="w-8 h-8 rounded-full border border-gold/50"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center text-gold text-sm font-medium">
+                          {(profile?.full_name || user.email || "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <motion.button
+                        onClick={() => signOut()}
+                        className="text-sm text-pearl-muted hover:text-pearl transition-colors"
+                        whileHover={{ x: 2 }}
+                      >
+                        Sign Out
+                      </motion.button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/signin">
+                      <motion.span 
+                        className="text-sm text-pearl-muted hover:text-pearl transition-colors cursor-pointer"
+                        whileHover={{ x: 2 }}
+                      >
+                        Sign In
+                      </motion.span>
+                    </Link>
+                    <Link href="/auth/signup">
+                      <motion.button
+                        className="px-5 py-2 text-sm font-medium bg-gold text-void rounded-lg hover:bg-gold-400 transition-colors"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Get Started
+                      </motion.button>
+                    </Link>
+                  </>
+                )}
               </div>
             </motion.header>
 

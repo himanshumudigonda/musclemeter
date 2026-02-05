@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Completing sign in...");
 
@@ -19,7 +20,21 @@ export default function AuthCallbackPage() {
       }
 
       try {
-        // Get session from URL hash
+        // Handle the OAuth code exchange - this is critical!
+        const code = searchParams.get("code");
+        
+        if (code) {
+          // Exchange the code for a session
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error("Code exchange error:", exchangeError);
+            setStatus("error");
+            setMessage(exchangeError.message);
+            return;
+          }
+        }
+
+        // Now get the session
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -87,7 +102,7 @@ export default function AuthCallbackPage() {
     };
 
     handleCallback();
-  }, [router]);
+  }, [router, searchParams]);
 
   return (
     <div className="min-h-screen bg-void flex items-center justify-center">
@@ -134,5 +149,19 @@ export default function AuthCallbackPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-void flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-gold animate-spin" />
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
