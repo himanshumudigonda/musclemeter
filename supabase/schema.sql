@@ -237,14 +237,27 @@ CREATE TRIGGER update_bookings_updated_at
 -- Function to create profile on user signup
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    user_role_value user_role;
 BEGIN
+    -- Safely get the role, default to 'athlete' if invalid or missing
+    BEGIN
+        user_role_value := (NEW.raw_user_meta_data->>'role')::user_role;
+    EXCEPTION WHEN OTHERS THEN
+        user_role_value := 'athlete';
+    END;
+    
     INSERT INTO public.profiles (id, email, full_name, role)
     VALUES (
         NEW.id,
-        NEW.email,
+        COALESCE(NEW.email, ''),
         COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'),
-        COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'athlete')
+        COALESCE(user_role_value, 'athlete')
     );
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+    -- Log error but don't fail the signup
+    RAISE WARNING 'Failed to create profile for user %: %', NEW.id, SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
