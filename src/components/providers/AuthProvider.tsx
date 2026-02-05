@@ -11,14 +11,9 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isDemo: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (
-    email: string,
-    password: string,
-    fullName: string,
-    role: "athlete" | "owner"
-  ) => Promise<{ error: Error | null }>;
+  signInWithGoogle: (role?: "athlete" | "owner") => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  updateUserRole: (role: "athlete" | "owner") => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,63 +76,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(data);
   }
 
-  async function signIn(email: string, password: string) {
+  async function signInWithGoogle(role?: "athlete" | "owner") {
     if (!isSupabaseConfigured) {
-      return { error: new Error("Demo mode: Supabase not configured. Add credentials to .env.local") };
+      return { error: new Error("Demo mode: Supabase not configured") };
     }
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    // Store role in localStorage to use after redirect
+    if (role) {
+      localStorage.setItem("pendingRole", role);
+    }
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     });
 
     return { error: error as Error | null };
   }
 
-  async function signUp(
-    email: string,
-    password: string,
-    fullName: string,
-    role: "athlete" | "owner"
-  ) {
-    if (!isSupabaseConfigured) {
-      return { error: new Error("Demo mode: Supabase not configured. Add credentials to .env.local") };
-    }
+  async function updateUserRole(role: "athlete" | "owner") {
+    if (!user) return { error: new Error("No user logged in") };
     
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: role,
-        },
-      },
-    });
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role } as never)
+      .eq("id", user.id);
 
-    if (error) {
-      return { error: error as Error };
+    if (!error && profile) {
+      setProfile({ ...profile, role });
     }
 
-    // Create profile after signup
-    if (data.user) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        email: email,
-        full_name: fullName,
-        role: role,
-      } as never);
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        return { error: profileError as unknown as Error };
-      }
-    }
-
-    return { error: null };
+    return { error: error as Error | null };
   }
 
   async function signOut() {
+    localStorage.removeItem("pendingRole");
     await supabase.auth.signOut();
     setProfile(null);
   }
@@ -148,9 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     isLoading,
     isDemo: !isSupabaseConfigured,
-    signIn,
-    signUp,
+    signInWithGoogle,
     signOut,
+    updateUserRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -234,11 +234,12 @@ CREATE TRIGGER update_bookings_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Function to create profile on user signup
+-- Function to create profile on user signup (supports Google OAuth)
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     user_role_value user_role;
+    user_full_name TEXT;
 BEGIN
     -- Safely get the role, default to 'athlete' if invalid or missing
     BEGIN
@@ -247,12 +248,22 @@ BEGIN
         user_role_value := 'athlete';
     END;
     
-    INSERT INTO public.profiles (id, email, full_name, role)
+    -- Get name from various sources (email signup vs Google OAuth)
+    user_full_name := COALESCE(
+        NEW.raw_user_meta_data->>'full_name',           -- Email signup
+        NEW.raw_user_meta_data->>'name',                -- Google OAuth
+        NEW.raw_user_meta_data->>'user_name',           -- Fallback
+        split_part(COALESCE(NEW.email, ''), '@', 1),    -- Extract from email
+        'User'                                           -- Final fallback
+    );
+    
+    INSERT INTO public.profiles (id, email, full_name, role, avatar_url)
     VALUES (
         NEW.id,
         COALESCE(NEW.email, ''),
-        COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'),
-        COALESCE(user_role_value, 'athlete')
+        user_full_name,
+        COALESCE(user_role_value, 'athlete'),
+        NEW.raw_user_meta_data->>'avatar_url'           -- Google provides avatar
     );
     RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
