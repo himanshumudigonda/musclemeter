@@ -411,7 +411,13 @@ export default function LandingPage() {
     setIsTransitioning(true);
     setTransitionTarget(target);
     
-    // Navigate to correct dashboard
+    // If not logged in, redirect to login with role
+    if (!user) {
+      router.push(`/login?role=${target}`);
+      return;
+    }
+    
+    // Logged in - navigate to correct dashboard
     if (target === "athlete") {
       router.push("/dashboard/user");
     } else {
