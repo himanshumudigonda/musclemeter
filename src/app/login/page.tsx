@@ -73,13 +73,28 @@ function LoginContent() {
 
   const role = (searchParams.get("role") as "athlete" | "owner") || "athlete";
   const redirectTo = searchParams.get("redirect") || null;
+  const errorParam = searchParams.get("error");
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check for error in URL params
+  useEffect(() => {
+    if (errorParam) {
+      if (errorParam === "auth_callback_failed") {
+        setError("Authentication failed. Please try again.");
+      } else {
+        setError(errorParam);
+      }
+    }
+  }, [errorParam]);
+
   // If already logged in, redirect
   useEffect(() => {
     if (user && !authLoading) {
+      // Refresh to update server components first
+      router.refresh();
+      
       if (redirectTo) {
         router.push(redirectTo);
       } else if (role === "owner") {
