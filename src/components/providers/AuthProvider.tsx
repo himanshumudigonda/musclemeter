@@ -84,8 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: new Error("Demo mode: Supabase not configured") };
     }
     
-    // Store role in localStorage to use after redirect
+    // Store role in cookie (accessible by server) and localStorage (backup)
     if (role) {
+      document.cookie = `pendingRole=${role}; path=/; max-age=300; SameSite=Lax`;
       localStorage.setItem("pendingRole", role);
     }
     

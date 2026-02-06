@@ -1,10 +1,15 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
+  
+  // Get pending role from cookie (set before OAuth redirect)
+  const cookieStore = await cookies();
+  const pendingRole = cookieStore.get("pendingRole")?.value as "athlete" | "owner" | undefined;
 
   if (code) {
     const supabase = await createClient();
@@ -15,8 +20,23 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Check for pending role from signup
-        // Since we can't access localStorage here, check if profile has a role
+        // If role was stored in cookie, update the profile and redirect
+        if (pendingRole === "owner" || pendingRole === "athlete") {
+          await supabase
+            .from("profiles")
+            .update({ role: pendingRole } as never)
+            .eq("id", user.id);
+          
+          // Clear the cookie
+          const response = pendingRole === "owner" 
+            ? NextResponse.redirect(`${origin}/dashboard/owner/create`)
+            : NextResponse.redirect(`${origin}/dashboard/user`);
+          
+          response.cookies.delete("pendingRole");
+          return response;
+        }
+        
+        // Fallback: check existing profile role
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
