@@ -411,11 +411,11 @@ export default function LandingPage() {
     setIsTransitioning(true);
     setTransitionTarget(target);
     
-    // Navigate immediately with prefetch
+    // Navigate to correct dashboard
     if (target === "athlete") {
-      router.push("/explore");
+      router.push("/dashboard/user");
     } else {
-      router.push("/explore"); // Go to explore for demo, dashboard needs auth
+      router.push("/dashboard/owner/create");
     }
   };
 
